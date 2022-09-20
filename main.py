@@ -37,6 +37,10 @@ def get_height():
 
 
 def get_validators_list():
+
+    all_validators_data = {}
+    all_validators_list = []
+    count = 1
     try:
         response = requests.get(validators_list_url, timeout=5)
         response.raise_for_status()
@@ -62,11 +66,18 @@ def get_validators_list():
                 'moniker': moniker,
                 'website': website,
                 'commission': commission,
+                'delegator_shares': delegator_shares,
             }
 
-            print(f'{validators_data}')
+            all_validators_data[count] = validators_data
 
-            return validators_data
+            all_validators_list.append((valoper, jailed, tokens, moniker, website, commission, delegator_shares))
+
+            count = count+1
+
+        print(f'{all_validators_data}')
+
+        return all_validators_list
 
     except requests.exceptions.HTTPError as errh:
         print(errh)
@@ -83,7 +94,6 @@ def add_to_database():
     height = get_height()
     price = get_price()
     validators_list = get_validators_list()
-    breakpoint()
 
     try:
         connection = mysql.connector.connect(host='hugoboqu.beget.tech',
@@ -94,22 +104,24 @@ def add_to_database():
         mysql_insert_height_price = """INSERT INTO general_info (Height, Price)
                                VALUES
                                (%s, %s) """
-        mysql_insert_validators = """INSERT INTO validators (valoper, moniker, jailed, tokens, website, commission)
+        mysql_insert_validators = """INSERT INTO validators (valoper, jailed, tokens, moniker, website, commission, delegator_shares)
                                VALUES
-                               (%s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE \
+                               (%s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE \
                                 valoper = VALUES(valoper), \
                                 moniker = VALUES(moniker), \
                                 jailed = VALUES(jailed), \
                                 commission = VALUES(commission), \
                                 tokens = VALUES(tokens), \
-                                website = VALUES(website)                                                      
-                                 """
+                                website = VALUES(website), \
+                                delegator_shares = VALUES(delegator_shares)                                                       
+                                """
         record_1 = (height, price)
-        record_2 = (validators_list['valoper'], validators_list['moniker'], validators_list['jailed'],
-                    validators_list['tokens'], validators_list['website'], validators_list['commission'])
+        # record_2 = (validators_list['valoper'], validators_list['moniker'], validators_list['jailed'],
+        #             validators_list['tokens'], validators_list['website'], validators_list['commission'])
+        record_2 = validators_list
         cursor = connection.cursor()
         cursor.execute(mysql_insert_height_price, record_1)
-        cursor.execute(mysql_insert_validators, record_2)
+        cursor.executemany(mysql_insert_validators, record_2)
         connection.commit()
         print(cursor.rowcount, "Record inserted successfully into Laptop table")
         cursor.close()
