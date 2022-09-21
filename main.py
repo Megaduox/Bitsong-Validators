@@ -1,12 +1,14 @@
 import requests
 import json
 import mysql.connector  # pip install mysql-connector-python
+import time
 
 from pycoingecko import CoinGeckoAPI
 
 
 abci_info_url = 'https://bitsong-archive.validatrium.club/abci_info'
-validators_list_url = 'https://api.bitsong.interbloc.org/cosmos/staking/v1beta1/validators'
+validators_list_url = 'https://api.bitsong.interbloc.org/cosmos/staking/' \
+                      'v1beta1/validators?pagination.count_total=true&pagination.limit=500'
 
 
 def get_price():
@@ -123,7 +125,7 @@ def add_to_database():
         cursor.execute(mysql_insert_height_price, record_1)
         cursor.executemany(mysql_insert_validators, record_2)
         connection.commit()
-        print(cursor.rowcount, "Record inserted successfully into Laptop table")
+        print(cursor.rowcount, "Record inserted successfully into general_info and validators tables")
         cursor.close()
 
     except mysql.connector.Error as error:
@@ -138,4 +140,8 @@ def add_to_database():
 if __name__ == '__main__':
     # get_price_height()
     # get_validators_list()
-    add_to_database()
+    # add_to_database()
+
+    while True:
+        add_to_database()
+        time.sleep(3600)
