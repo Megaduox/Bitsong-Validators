@@ -5,10 +5,6 @@ import mysql.connector  # pip install mysql-connector-python
 from pycoingecko import CoinGeckoAPI
 
 
-abci_info_url = 'https://bitsong-archive.validatrium.club/abci_info'
-validators_list_url = 'https://api.bitsong.interbloc.org/cosmos/staking/v1beta1/validators'
-
-
 def get_price():
     cg = CoinGeckoAPI('')
     bitsong_price = cg.get_price(ids='bitsong', vs_currencies='usd')
@@ -17,6 +13,9 @@ def get_price():
 
 
 def get_height():
+
+    abci_info_url = 'https://bitsong-archive.validatrium.club/abci_info'
+
     try:
         response = requests.get(abci_info_url, timeout=5)
         response.raise_for_status()
@@ -38,6 +37,7 @@ def get_height():
 
 def get_validators_list():
 
+    validators_list_url = 'https://api.bitsong.interbloc.org/cosmos/staking/v1beta1/validators'
     all_validators_data = {}
     all_validators_list = []
     count = 1
