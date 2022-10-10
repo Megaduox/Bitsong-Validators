@@ -54,12 +54,40 @@ def get_validator_delegators(validator_valoper):
         print(err)
 
 
-def add_to_database():
-#     доделать функцию добавления в базу данных адресов делегаторов, чтобы были связаны с валидаторами
+def add_to_database(address, validator_id):
+
+    try:
+        connection = mysql.connector.connect(host='hugoboqu.beget.tech',
+                                             database='hugoboqu_bitsong	',
+                                             user='hugoboqu_bitsong	',
+                                             password='UY8wd*Yr')
+
+        mysql_insert_delegators = """INSERT INTO delegators (address, validator_id)
+                               VALUES
+                               (%s, %s) ON DUPLICATE KEY UPDATE \
+                                address = VALUES(address), \
+                                validator_id = VALUES(validator_id)                                                    
+                                """
+        # record_1 = (height, price)
+        record_1 = (address, validator_id)
+
+        cursor = connection.cursor()
+        cursor.execute(mysql_insert_delegators, record_1)
+        connection.commit()
+        print(cursor.rowcount, "Record inserted successfully into delegators table")
+        cursor.close()
+
+    except mysql.connector.Error as error:
+        print("Failed to insert record into table {}".format(error))
+
+    finally:
+        if connection.is_connected():
+            connection.close()
+            print("MySQL connection is closed")
+
 
 if __name__ == '__main__':
-    t = get_validator_delegators('bitsongvaloper1f4z9xvfswjyss32d26z8v3ak5f97t74zj5c6ht')
-    print(t)
+    add_to_database('bitsong1f4z9xvfswjyss32d26z8v3ak5f97t74znsyn8k', 68)
 
 
 
