@@ -137,5 +137,5 @@ def add_to_database():
 
 if __name__ == '__main__':
     # get_price_height()
-    # get_validators_list()
-    add_to_database()
+    get_validators_list()
+    # add_to_database()
