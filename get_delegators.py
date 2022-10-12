@@ -1,18 +1,12 @@
 import requests
 import json
 import mysql.connector
+import dateutil.parser  # pip install python-dateutil
 
-
-config = {
-    'host': 'hugoboqu.beget.tech',
-    'database': 'hugoboqu_bitsong',
-    'user': 'hugoboqu_bitsong',
-    'password': 'UY8wd*Yr',
-}
+from config import config
 
 
 def get_validators_list():
-
     validators_list_url = 'https://api.bitsong.interbloc.org/cosmos/staking/v1beta1/validators'
     all_validators_data = {}
     all_validators_list = []
@@ -22,7 +16,6 @@ def get_validators_list():
         response.raise_for_status()
         clean_data = json.loads(response.text)
         for validator in clean_data['validators']:
-
             all_validators_list.append(validator['operator_address'])
 
         print(f'{all_validators_list}')
@@ -63,7 +56,6 @@ def get_validator_delegators(validator_valoper):
 
 
 def add_to_database_one(address, validator_id):
-
     try:
         connection = mysql.connector.connect(**config)
 
@@ -92,7 +84,6 @@ def add_to_database_one(address, validator_id):
 
 
 def get_mysql_id_by_valoper(valoper):
-
     try:
         connection = mysql.connector.connect(**config)
 
@@ -117,8 +108,7 @@ def get_mysql_id_by_valoper(valoper):
             print("MySQL connection is closed")
 
 
-def get_validators_delegators():
-
+def get_validators_delegators(validators_with_valopers=False):
     all_validators = get_validators_list()
     validators_delegators = list()
     count = 1
@@ -130,7 +120,10 @@ def get_validators_delegators():
         if count < 200:  # temporary condition
             all_delegators_for_validator = get_validator_delegators(validator)
             for delegator in all_delegators_for_validator:
-                validators_delegators.append((validator_id, delegator))
+                if not validators_with_valopers:
+                    validators_delegators.append((validator_id, delegator))
+                else:
+                    validators_delegators.append((validator_id, delegator, validator))
             count += 1
         else:
             break
@@ -139,12 +132,8 @@ def get_validators_delegators():
 
 
 def add_to_database_many(record):
-
     try:
-        connection = mysql.connector.connect(host='hugoboqu.beget.tech',
-                                             database='hugoboqu_bitsong	',
-                                             user='hugoboqu_bitsong	',
-                                             password='UY8wd*Yr')
+        connection = mysql.connector.connect(**config)
 
         mysql_insert_delegators = """INSERT INTO delegators (address, validator_id)
                                VALUES
@@ -174,27 +163,64 @@ def add_to_database_many(record):
             print("MySQL connection is closed")
 
 
-def get_time_tokens_for_delegations():
+def get_time_tokens_for_delegations(validators_delegators):
+    full_data_delgators_validators = list()
+    count = 1
 
-    delegator = 'bitsong1n4akqrmpd29stwvh6dklzecplfha2asdtce9nn'
-    validator = "bitsongvaloper1f4z9xvfswjyss32d26z8v3ak5f97t74zj5c6ht"
-    api_url = f"https://api.bitsong.interbloc.org/cosmos/tx/v1beta1/txs?events=message.sender='{delegator}'&events=delegate.validator='{validator}'"
+    for validator_delgator in validators_delegators:
+        if count < 10000:  # temporary condition
+            validator_id = validator_delgator[0]
+            delegator = validator_delgator[1]
+            validator = validator_delgator[2]
 
-    response = requests.get(api_url)
+            api_url = f"https://api.bitsong.interbloc.org/cosmos/tx/v1beta1/txs?events=message.sender='{delegator}'&events=delegate.validator='{validator}'"
 
-    clean_data = json.loads(response.text)
+            response = requests.get(api_url)
 
-    timestamp = clean_data['tx_responses'][0]['timestamp']
-    amount = int(clean_data['txs'][0]['body']['messages'][0]['amount']['amount'])
+            clean_data = json.loads(response.text)
+            print(count, validator_id, delegator)
 
-    print(timestamp, amount)
-    # преобразовать timestamp в дату для экспорта в базу и добавить эту функцию в основную по добавлению в базу
+            if clean_data['txs'] and 'grantee' not in clean_data['txs'][0]['body']['messages'][0]\
+                    and 'amount' in clean_data['txs'][0]['body']['messages'][0]:
+                timestamp_source = clean_data['tx_responses'][0]['timestamp']
+                amount = int(clean_data['txs'][0]['body']['messages'][0]['amount']['amount'])
+                timestamp_parsed = dateutil.parser.parse(timestamp_source)
+                timestamp = timestamp_parsed.strftime('%Y-%m-%d')
+
+                full_data_delgators_validators.append((timestamp, amount, delegator, validator_id))
+            else:
+                pass
+
+            count += 1
+        else:
+            break
+
+    try:
+        connection = mysql.connector.connect(**config)
+
+        mysql_insert_delegators = """UPDATE delegators SET date=%s, delegations=%s WHERE address=%s AND validator_id=%s                                              
+                                """
+        # record_1 = (timestamp, amount, delegator, validator_id)
+        record_1 = full_data_delgators_validators
+
+        cursor = connection.cursor()
+        cursor.executemany(mysql_insert_delegators, record_1)
+        connection.commit()
+        print(cursor.rowcount, "Record inserted successfully into delegators table")
+        cursor.close()
+
+    except mysql.connector.Error as error:
+        print("Failed to insert record into table {}".format(error))
+
+    finally:
+        if connection.is_connected():
+            connection.close()
+            print("MySQL connection is closed")
 
 
 if __name__ == '__main__':
+    # get all validators and delgators. Add them to database
     # add_to_database_many(record=get_validators_delegators())
-    # get_validators_delegators()
-    # get_mysql_id_by_valoper(valoper='bitsongvaloper100akrazwzrxhklgnh2ueaqfcv7kcanh9ew3jxf')
-    get_time_tokens_for_delegations()
-
-
+    # get all delegators and add tokens, date to database
+    get_time_tokens_for_delegations(validators_delegators=get_validators_delegators(
+        validators_with_valopers=True))

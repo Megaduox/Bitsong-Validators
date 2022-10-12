@@ -153,3 +153,4 @@ cython_debug/
 
 # custom
 temp.py
+config.py
