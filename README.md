@@ -1,6 +1,6 @@
 # Bitsong Validators
-This is sevice for Bitsong Validators.
-
+This is sevice for Bitsong Validators. You can see how it works here 
+[Bitsong.blockmachine.pro](https://bitsong.blockmachine.pro/)
 ## How to use
 1. Use function add_to_database_many(record=get_validators_delegators()) in
 the file get_delgators.py. You will get all validators, delgators and 
@@ -10,7 +10,7 @@ in the file get_delgators.py. You will get all delegators and add tokens, date t
 
 ## Functions
 In file get_delegators.py.
-### get_validators_list()
+### get_validators_PSSSlist()
 Get list of all validators from Bitsong blockchain.
 ### get_validator_delegators(validator_valoper)
 Through the cicle get all delegators by validators valoper.

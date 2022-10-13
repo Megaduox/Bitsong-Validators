@@ -3,6 +3,7 @@ import json
 import mysql.connector  # pip install mysql-connector-python
 
 from pycoingecko import CoinGeckoAPI
+from config import config
 
 
 def get_price():
@@ -96,10 +97,7 @@ def add_to_database():
     validators_list = get_validators_list()
 
     try:
-        connection = mysql.connector.connect(host='hugoboqu.beget.tech',
-                                             database='hugoboqu_bitsong	',
-                                             user='hugoboqu_bitsong	',
-                                             password='UY8wd*Yr')
+        connection = mysql.connector.connect(**config)
 
         mysql_insert_height_price = """INSERT INTO general_info (Height, Price)
                                VALUES
@@ -137,5 +135,6 @@ def add_to_database():
 
 if __name__ == '__main__':
     # get_price_height()
-    get_validators_list()
-    # add_to_database()
+    # get_validators_list()
+    add_to_database()
+

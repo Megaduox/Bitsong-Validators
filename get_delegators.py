@@ -6,7 +6,7 @@ import dateutil.parser  # pip install python-dateutil
 from config import config
 
 
-def get_validators_list():
+def get_validators_list_from_api():
     validators_list_url = 'https://api.bitsong.interbloc.org/cosmos/staking/v1beta1/validators'
     all_validators_data = {}
     all_validators_list = []
@@ -30,6 +30,34 @@ def get_validators_list():
         print(errt)
     except requests.exceptions.RequestException as err:
         print(err)
+
+
+def get_validators_list():
+
+    all_validators_list = []
+
+    try:
+        connection = mysql.connector.connect(**config)
+
+        mysql_select_id = """SELECT * from validators"""
+        cursor = connection.cursor()
+        cursor.execute(mysql_select_id)
+        record = cursor.fetchall()
+
+        for row in record:
+            print(f'Adding {row[0]} to database')
+            all_validators_list.append(row[0])
+
+        return all_validators_list
+
+    except mysql.connector.Error as error:
+        print("Failed to get record from MySQL table: {}".format(error))
+
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+            print("MySQL connection is closed")
 
 
 def get_validator_delegators(validator_valoper):
